@@ -2,12 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include "syncword.h"
-
-typedef struct {
-    bool*   bits;
-    size_t  bit_len;
-} SyncWord;
 
 int hamming_distance(bool* syncword, bool* window_bits, size_t len) {
     int dist = 0;
@@ -64,9 +60,4 @@ void syncword_destroy(SyncWord* sw) {
     if (!sw) return;
     free(sw->bits);
     free(sw);
-}
-
-
-int main() {
-    return 0;
 }
