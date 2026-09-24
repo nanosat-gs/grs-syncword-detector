@@ -23,9 +23,9 @@
 /**
  * \brief Smoke test for the detector.
  *
- * Builds the FloripaSat sync word (BA 67 54 7E), plants it in a bit stream at
- * an offset that is NOT a multiple of eight, and requires the detector to
- * find it.
+ * Builds the FloripaSat sync word (5D E6 2A 7E, as ngham.c defines it), plants
+ * it in a bit stream at an offset that is NOT a multiple of eight, and
+ * requires the detector to find it.
  *
  * The misaligned offset is the whole point. What arrives from the
  * demodulator is a bit stream with no byte synchronisation whatsoever -- byte
@@ -64,7 +64,7 @@ static int expect(const char *what, int got, int wanted)
 
 int main(void)
 {
-    uint8_t syncword_bytes[4] = {0xBA, 0x67, 0x54, 0x7E};
+    uint8_t syncword_bytes[4] = {0x5D, 0xE6, 0x2A, 0x7E};  /* NGH_SYNC do ngham.c */
     bool stream[SMOKE_STREAM_BITS];
     SyncWord *sw = NULL;
     size_t i;

@@ -72,8 +72,23 @@
 
 #include "syncword.h"
 
-/* NGHam sync word, as used by the FloripaSat link. */
-#define SYNCWORD_DEFAULT_BYTES          "BA67547E"
+/* NGHam sync word, straight from the reference implementation:
+ *
+ *     const uint8_t NGH_SYNC[] = {0x5D, 0xE6, 0x2A, 0x7E};   (ngham.c)
+ *
+ * NOT "BA67547E", which is what the slice document carried. That value is the
+ * SAME vector with the bits of each byte reversed -- true only if you expand
+ * it LSB-first. Searched MSB-first, as this service does, it matches nothing.
+ *
+ * Measured, not reasoned: against a real FloripaSat-1 recording, BA67547E
+ * MSB-first found ZERO packets and 5DE62A7E found nineteen, each followed by
+ * an NGHam size tag at Hamming distance 0 and preceded by the 0xAA preamble
+ * the reference implementation defines.
+ *
+ * The bug survived because our own simulator generated BA67547E MSB-first
+ * too: transmitter and receiver agreed with each other and both disagreed
+ * with the satellite. Only off-air data could catch it. */
+#define SYNCWORD_DEFAULT_BYTES          "5DE62A7E"
 
 #define SERVICE_DEFAULT_BITS_SOURCE     "tcp://localhost:5555"
 #define SERVICE_DEFAULT_PACKETS_BIND    "tcp://*:5558"
@@ -279,6 +294,8 @@ int main(void)
 
     uint8_t syncword_bytes[32];
     int syncword_len;
+    const char *bit_order = env_or("GRS_SYNCWORD_BIT_ORDER", "msb");
+    bool lsb_first = (strcmp(bit_order, "lsb") == 0);
 
     void *context = NULL;
     void *subscriber = NULL;
@@ -329,9 +346,11 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    /* false: MSB first, matching how BA 67 54 7E is written and how the
-     * demodulator hands the bits over. */
-    syncword = syncword_create(syncword_bytes, (size_t)syncword_len, false);
+    /* Bit order, configurable because it is the setting most likely to be
+     * wrong and least likely to be suspected: a wrong order does not throw,
+     * does not warn and does not degrade -- it simply finds nothing, which
+     * looks exactly like a satellite that did not transmit. */
+    syncword = syncword_create(syncword_bytes, (size_t)syncword_len, lsb_first);
 
     if (syncword == NULL)
     {
@@ -381,8 +400,9 @@ int main(void)
 
     printf("grs-syncword-detector: bits from %s\n", bits_source);
     printf("grs-syncword-detector: raw packets on %s\n", packets_bind);
-    printf("grs-syncword-detector: syncword %s, up to %ld bit errors, %ld byte packets\n",
-           syncword_hex, max_errors, packet_bytes);
+    printf("grs-syncword-detector: syncword %s (%s-first), up to %ld bit errors, "
+           "%ld byte packets\n", syncword_hex, lsb_first ? "lsb" : "msb",
+           max_errors, packet_bytes);
     fflush(stdout);
 
     while (!do_exit)
