@@ -517,7 +517,17 @@ int main(void)
             }
 
             {
-                size_t advance = start + packet_bits;
+                /* Advance only past THIS sync word, not past the whole slice
+                 * just published. The slice is a generous fixed size (the
+                 * real frame length lives inside NGHam), so the next frame's
+                 * sync word can fall inside it: short frames back to back, or
+                 * the FS-2 beacon at 1200 baud, whose 255-byte slice (2040
+                 * bits) is longer than the 1400-bit burst period the station
+                 * simulator uses. Skipping the slice swallowed every other
+                 * packet there -- measured: 34 of 66, none corrupted, simply
+                 * never published. Overlapping slices are harmless: the
+                 * decoder reads the length from the NGHam size tag. */
+                size_t advance = start;
 
                 memmove(buffer, buffer + advance, (count - advance) * sizeof(bool));
                 consumed_bits += (uint64_t)advance;
