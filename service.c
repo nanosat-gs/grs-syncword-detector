@@ -55,8 +55,8 @@
  * Why packed here and not one-byte-per-bit like the input: byte framing
  * starts at the syncword. Before it there is no byte boundary to speak of --
  * which is the whole reason the search has to be bit-by-bit -- but after it
- * there is, and the decoder wants bytes. MSB-first, matching the order the
- * sync word BA 67 54 7E is written in.
+ * there is, and the decoder wants bytes. MSB-first, the same order the sync
+ * word 5D E6 2A 7E is searched in (see SYNCWORD_DEFAULT_BYTES below).
  */
 
 #include <stdio.h>
