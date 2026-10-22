@@ -80,11 +80,17 @@ three frames:
 |---|---|
 | 0 | Topic `raw_packet` |
 | 1 | JSON header, one line: `seq`, `bit_offset`, `bits`, `bytes`, `max_sync_errors`, `syncword`, `bit_order`, `detected_at` |
-| 2 | Payload: a **fixed** slice of 255 bytes after the syncword, packed MSB-first |
+| 2 | Payload: a **fixed** slice of `GRS_SYNCWORD_PACKET_BYTES` bytes after the syncword, packed MSB-first |
 
 The slice is fixed because this stage does not know where the frame ends: the
-length lives inside NGHam, and parsing NGHam is the decoder's job. 255 bytes
-covers the largest NGHam frame.
+length lives inside NGHam, and parsing NGHam is the decoder's job. So a
+generous slice is published and the decoder takes what it needs.
+
+The largest NGHam frame after the syncword is **258 bytes**: a 3-byte size tag
+plus a 255-byte codeword. The built-in default is 255, which misses the size
+tag: every frame with more than 188 bytes of payload arrives truncated and
+never decodes. The ground station sets `GRS_SYNCWORD_PACKET_BYTES=258`; do the
+same for any NGHam link.
 
 ### Configuration (environment variables)
 
@@ -94,7 +100,7 @@ covers the largest NGHam frame.
 | `GRS_SYNCWORD_PACKETS_BIND` | `tcp://*:5558` | Where to publish raw packets |
 | `GRS_SYNCWORD_BYTES` | `5DE62A7E` | Syncword, in hex |
 | `GRS_SYNCWORD_BIT_ORDER` | `msb` | `msb` or `lsb` expansion of the syncword bytes |
-| `GRS_SYNCWORD_PACKET_BYTES` | `255` | Size of the slice published after each syncword |
+| `GRS_SYNCWORD_PACKET_BYTES` | `255` | Size of the slice published after each syncword. Use `258` for NGHam (see above) |
 | `GRS_SYNCWORD_MAX_ERRORS` | `1` | Bit errors tolerated in the syncword |
 
 > **The NGHam syncword is `5D E6 2A 7E`, searched MSB-first.** `BA 67 54 7E`
@@ -108,8 +114,8 @@ covers the largest NGHam frame.
   different `SyncWord` types in the two files).
 - The ZMQ service and the raw packet envelope (`service.c`).
 - Correct syncword value and bit order (see the note above).
-- A syncword falling **inside** the 255-byte slice of the previous packet is no
-  longer skipped. With 1200 baud bursts, that was half of the beacon packets.
+- A syncword falling **inside** the slice of the previous packet is no longer
+  skipped. With 1200 baud bursts, that was half of the beacon packets.
 
 ## Documentation
 

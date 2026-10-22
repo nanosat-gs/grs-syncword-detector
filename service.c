@@ -49,8 +49,12 @@
  * Why the payload is a FIXED number of bytes: this stage does not know where
  * the frame ends. Length lives inside NGHam, and parsing NGHam is the
  * decoder's job, not the detector's. So a generous fixed slice after the
- * syncword is published and the decoder takes what it needs. 255 bytes
- * covers the largest NGHam frame.
+ * syncword is published and the decoder takes what it needs.
+ *
+ * The largest NGHam frame after the syncword is 258 bytes: a 3-byte size tag
+ * plus a 255-byte codeword. The default below (255) misses the size tag, so
+ * frames with more than 188 bytes of payload arrive truncated; the ground
+ * station sets GRS_SYNCWORD_PACKET_BYTES=258.
  *
  * Why packed here and not one-byte-per-bit like the input: byte framing
  * starts at the syncword. Before it there is no byte boundary to speak of --
